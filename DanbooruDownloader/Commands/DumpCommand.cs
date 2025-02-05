@@ -314,6 +314,9 @@ namespace DanbooruDownloader.Commands
         {
             using (HttpClient client = new HttpClient())
             {
+                //Add User-Agent to prevent receiving a 403 Forbidden response
+                client.DefaultRequestHeaders.Add("User-Agent", "PostmanRuntime/7.43.0");
+
                 HttpResponseMessage response = await client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead);
 
                 switch (response.StatusCode)

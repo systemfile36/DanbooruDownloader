@@ -22,6 +22,9 @@ namespace DanbooruDownloader.Utilities
         {
             using (HttpClient client = new HttpClient())
             {
+                //Add User-Agent to prevent receiving a 403 Forbidden response
+                client.DefaultRequestHeaders.Add("User-Agent", "PostmanRuntime/7.43.0");
+
                 string url = GetPostsUrl(startId, username, apikey);
                 string jsonString = await client.GetStringAsync(url);
 
