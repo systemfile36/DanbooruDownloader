@@ -1,3 +1,9 @@
+This project is based on DanbooruDownloader by KichangKim
+
+Licensed under the MIT License.
+
+Original repository: https://github.com/KichangKim/DanbooruDownloader
+
 # DanbooruDownloader
 **DanbooruDownloader** is image download software for [Danbooru](https://danbooru.donmai.us/).
 
