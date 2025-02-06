@@ -26,6 +26,13 @@ namespace DanbooruDownloader
                 var outputPathArgument = command.Argument("path", "Output path.", false);
                 var startIdOption = command.Option("-s|--start-id <id>", "Starting Id. Default is 1.", CommandOptionType.SingleValue);
                 var endIdOption = command.Option("-e|--end-id <id>", "Ending Id. Default is 0 (unlimited).).", CommandOptionType.SingleValue);
+
+                //Set minimum value of score
+                var scoreMinOption = command.Option("--score-min", "Set minimum value of score. if set this value, start-id and end-id will be ignored", CommandOptionType.SingleValue);
+
+                //Set order of query
+                var orderOption = command.Option("--order", "Set query order (e.g., 'id_asc', 'score', etc.). Default is 'id_desc'. (This option will be used only when the --score-min option is set.)", CommandOptionType.SingleValue);
+
                 var ignoreHashCheckOption = command.Option("-i|--ignore-hash-check", "Ignore hash check.", CommandOptionType.NoValue);
                 var includeDeletedOption = command.Option("-d|--deleted", "Include deleted posts.", CommandOptionType.NoValue);
                 var usernameOption = command.Option("--username", "Username of Danbooru account.", CommandOptionType.SingleValue);
@@ -38,6 +45,12 @@ namespace DanbooruDownloader
                     long endId = 0;
                     bool ignoreHashCheck = ignoreHashCheckOption.HasValue();
                     bool includeDeleted = includeDeletedOption.HasValue();
+
+                    //Default is 0.
+                    long scoreMin = 0;
+
+                    //Default is 'id_desc'
+                    string order = "id_desc";
 
                     if (startIdOption.HasValue() && !long.TryParse(startIdOption.Value(), out startId))
                     {
@@ -57,10 +70,22 @@ namespace DanbooruDownloader
                         return -2;
                     }
 
+                    //if scoreMinOption.HasValue is true but it's not valid, exit program
+                    if (scoreMinOption.HasValue() && !long.TryParse(scoreMinOption.Value(), out scoreMin))
+                    {
+                        Console.WriteLine("Invalid score min value.");
+                        return -2;
+                    }
+
+                    if(orderOption.HasValue())
+                    {
+                        order = orderOption.Value();
+                    }
+
                     var username = usernameOption.Value();
                     var apikey = apikeyOption.Value();
 
-                    DumpCommand.Run(path, startId, endId, ignoreHashCheck, includeDeleted, username, apikey).Wait();
+                    DumpCommand.Run(path, startId, endId, scoreMin, order, ignoreHashCheck, includeDeleted, username, apikey).Wait();
 
                     return 0;
                 });

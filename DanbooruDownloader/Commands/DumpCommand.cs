@@ -18,7 +18,7 @@ namespace DanbooruDownloader.Commands
     {
         static Logger Log = LogManager.GetCurrentClassLogger();
 
-        public static async Task Run(string path, long startId, long endId, bool ignoreHashCheck, bool includeDeleted, string username, string apikey)
+        public static async Task Run(string path, long startId, long endId, long scoreMin, string order, bool ignoreHashCheck, bool includeDeleted, string username, string apikey)
         {
             string tempFolderPath = Path.Combine(path, "_temp");
             string imageFolderPath = Path.Combine(path, "images");
@@ -38,6 +38,9 @@ namespace DanbooruDownloader.Commands
 
                 SQLiteUtility.TryCreateTable(connection);
 
+                //page number for index
+                long page = 1;
+
                 while (true)
                 {
                     // Get posts metadata as json
@@ -45,8 +48,17 @@ namespace DanbooruDownloader.Commands
 
                     await TaskUtility.RunWithRetry(async () =>
                     {
-                        Log.Info($"Downloading metadata ... ({startId} ~ )");
-                        postJObjects = await DanbooruUtility.GetPosts(startId, username, apikey);
+                        //If scoreMin vlaue is set, it will be used.
+                        if(scoreMin > 0)
+                        {
+                            Log.Info($"Downloading metadata with score greater than {scoreMin} ... (current page : {page})");
+                            postJObjects = await DanbooruUtility.GetPosts(page, scoreMin, order, username, apikey);
+                        } else
+                        {
+                            Log.Info($"Downloading metadata ... ({startId} ~ )");
+                            postJObjects = await DanbooruUtility.GetPosts(startId, username, apikey);
+                        }
+                        
                     }, e =>
                     {
                         Log.Error(e);
@@ -229,6 +241,9 @@ namespace DanbooruDownloader.Commands
                     long lastId = long.Parse(posts.Last().Id);
 
                     startId = lastId + 1;
+
+                    //increment page value
+                    page++;
                 }
 
                 try
