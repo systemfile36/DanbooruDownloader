@@ -86,13 +86,16 @@ CREATE TABLE IF NOT EXISTS posts
             {
                 foreach (JObject post in posts)
                 {
+                    //remove 'media_asset' field. (to avoid SQL error)
+                    var properties = post.Properties().Where(p => p.Name != "media_asset");
+
                     SqliteCommand command = connection.CreateCommand();
 
                     command.CommandText = $@"
-INSERT OR REPLACE INTO posts ({string.Join(',', post.Properties().Select(p => p.Name))}) VALUES
-({string.Join(',', post.Properties().Select(p => '@' + p.Name))})";
+INSERT OR REPLACE INTO posts ({string.Join(',', properties.Select(p => p.Name))}) VALUES
+({string.Join(',', properties.Select(p => '@' + p.Name))})";
 
-                    foreach (JProperty property in post.Properties())
+                    foreach (JProperty property in properties)
                     {
                         object value = null;
 
