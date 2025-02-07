@@ -2,6 +2,7 @@
 using Microsoft.Extensions.CommandLineUtils;
 using Microsoft.Extensions.PlatformAbstractions;
 using System;
+using System.Collections.Generic;
 
 namespace DanbooruDownloader
 {
@@ -33,6 +34,9 @@ namespace DanbooruDownloader
                 //Set order of query
                 var orderOption = command.Option("--order", "Set query order (e.g., 'id_asc', 'score', etc.). Default is 'id_desc'. (This option will be used only when the --score-min option is set.)", CommandOptionType.SingleValue);
 
+                //Set extensions (fileType)
+                var extOption = command.Option("--ext", "Set extensions of file to download. extensions should be comma-separated list. (e.g., 'png,jpg,gif'). Default is 'png,jpg'", CommandOptionType.SingleValue);
+
                 var ignoreHashCheckOption = command.Option("-i|--ignore-hash-check", "Ignore hash check.", CommandOptionType.NoValue);
                 var includeDeletedOption = command.Option("-d|--deleted", "Include deleted posts.", CommandOptionType.NoValue);
                 var usernameOption = command.Option("--username", "Username of Danbooru account.", CommandOptionType.SingleValue);
@@ -51,6 +55,9 @@ namespace DanbooruDownloader
 
                     //Default is 'id_desc'
                     string order = "id_desc";
+
+                    //Default is 'png,jpg'
+                    List<string> exts = new List<string> { "png", "jpg" };
 
                     if (startIdOption.HasValue() && !long.TryParse(startIdOption.Value(), out startId))
                     {
@@ -82,10 +89,15 @@ namespace DanbooruDownloader
                         order = orderOption.Value();
                     }
 
+                    if(extOption.HasValue())
+                    {
+                        exts = new List<string>(extOption.Value().Split(","));
+                    }
+
                     var username = usernameOption.Value();
                     var apikey = apikeyOption.Value();
 
-                    DumpCommand.Run(path, startId, endId, scoreMin, order, ignoreHashCheck, includeDeleted, username, apikey).Wait();
+                    DumpCommand.Run(path, startId, endId, scoreMin, order, exts, ignoreHashCheck, includeDeleted, username, apikey).Wait();
 
                     return 0;
                 });

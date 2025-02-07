@@ -18,7 +18,7 @@ namespace DanbooruDownloader.Commands
     {
         static Logger Log = LogManager.GetCurrentClassLogger();
 
-        public static async Task Run(string path, long startId, long endId, long scoreMin, string order, bool ignoreHashCheck, bool includeDeleted, string username, string apikey)
+        public static async Task Run(string path, long startId, long endId, long scoreMin, string order, List<string> exts, bool ignoreHashCheck, bool includeDeleted, string username, string apikey)
         {
             string tempFolderPath = Path.Combine(path, "_temp");
             string imageFolderPath = Path.Combine(path, "images");
@@ -76,7 +76,7 @@ namespace DanbooruDownloader.Commands
                     // Validate post
                     Log.Info($"Checking {postJObjects.Length} posts ...");
                     Post[] posts = postJObjects.Select(p => ConvertToPost(p))
-                        .Where(p => p != null && (endId <= 0 || long.Parse(p.Id) <= endId))
+                        .Where(p => p != null && (endId <= 0 || long.Parse(p.Id) <= endId) && exts.Contains(p.Extension)) //Check Posts Extension
                         .ToArray();
 
                     if (posts.Length == 0)
