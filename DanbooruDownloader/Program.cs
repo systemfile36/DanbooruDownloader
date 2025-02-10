@@ -3,6 +3,8 @@ using Microsoft.Extensions.CommandLineUtils;
 using Microsoft.Extensions.PlatformAbstractions;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace DanbooruDownloader
 {
@@ -36,7 +38,7 @@ namespace DanbooruDownloader
                 var endPageOption = command.Option("-ep|--end-page <page>", "Ending Page. Default is 0 (unlimited).", CommandOptionType.SingleValue);
                 
                 //Set custom query string. see https://danbooru.donmai.us/wiki_pages/help%3Acheatsheet
-                var queryOption = command.Option("--query", "Set tag query string (e.g., 'score:>=100', 'blonde_hair', etc.). Default is null. --use-paging option should be enabled", CommandOptionType.SingleValue);
+                var queryOption = command.Option("--query", "Set tag query string (e.g., 'score:>=100', 'blonde_hair', etc.). Default is empty string. --use-paging option should be enabled", CommandOptionType.SingleValue);
 
                 //Set extensions (fileType)
                 var extOption = command.Option("--ext", "Set extensions of file to download. extensions should be comma-separated list. (e.g., 'png,jpg,gif'). Default is 'png,jpg'", CommandOptionType.SingleValue);
@@ -45,6 +47,9 @@ namespace DanbooruDownloader
                 var includeDeletedOption = command.Option("-d|--deleted", "Include deleted posts.", CommandOptionType.NoValue);
                 var usernameOption = command.Option("--username", "Username of Danbooru account.", CommandOptionType.SingleValue);
                 var apikeyOption = command.Option("--api-key", "API key of Danbooru account.", CommandOptionType.SingleValue);
+
+                //Set command that execute on exit
+                var onExitCommandOption = command.Option("-ec|--exit-command", "Command that execute when program exit. Default is none", CommandOptionType.SingleValue);
 
                 command.OnExecute(() =>
                 {
@@ -60,8 +65,8 @@ namespace DanbooruDownloader
                     bool ignoreHashCheck = ignoreHashCheckOption.HasValue();
                     bool includeDeleted = includeDeletedOption.HasValue();
 
-                    //Default is null
-                    string query = null;
+                    //Default is ""
+                    string query = "";
 
                     //Default is 'png,jpg'
                     List<string> exts = new List<string> { "png", "jpg" };
@@ -114,6 +119,24 @@ namespace DanbooruDownloader
                         exts = new List<string>(extOption.Value().Split(","));
                     }
 
+                    if(onExitCommandOption.HasValue())
+                    {
+                        
+                        string command = onExitCommandOption.Value();
+
+                        //closure
+                        //Add EventListener to ProcessExit event
+                        AppDomain.CurrentDomain.ProcessExit += (sender, args) =>
+                        {
+                            if (!string.IsNullOrWhiteSpace(command))
+                            {
+                                Console.WriteLine($"Exit...{command} will execute...");
+                                ExecuteCommand(command);
+                            }
+                        };
+                    }
+
+
                     var username = usernameOption.Value();
                     var apikey = apikeyOption.Value();
 
@@ -145,6 +168,41 @@ namespace DanbooruDownloader
             {
                 Console.WriteLine(e);
                 Environment.ExitCode = -1;
+            }
+        }
+
+        //Execute shell command
+        static void ExecuteCommand(string command)
+        {
+            string shell, args;
+
+            //Set shell and arguments by OS
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                shell = "cmd.exe"; 
+                args = $"/c {command}";
+            } else
+            {
+                shell = "/bin/bash";
+                args = $"-c \"{command}\"";
+            }
+
+
+            ProcessStartInfo psi = new ProcessStartInfo
+            {
+                FileName = shell,
+                Arguments = args,
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            };
+
+            //Start Process by Process start info
+            using(Process process = Process.Start(psi))
+            {
+                string output = process.StandardOutput.ReadToEnd();
+                process.WaitForExit();
+                Console.WriteLine(output);
             }
         }
     }
