@@ -28,11 +28,15 @@ namespace DanbooruDownloader
                 var startIdOption = command.Option("-s|--start-id <id>", "Starting Id. Default is 1.", CommandOptionType.SingleValue);
                 var endIdOption = command.Option("-e|--end-id <id>", "Ending Id. Default is 0 (unlimited).).", CommandOptionType.SingleValue);
 
-                //Set minimum value of score
-                var scoreMinOption = command.Option("--score-min", "Set minimum value of score. if set this value, start-id and end-id will be ignored", CommandOptionType.SingleValue);
+                //use Paging Option
+                var usePageOption = command.Option("-p|--use-paging", "Use Paging value. -s and -e option will be ignored", CommandOptionType.NoValue);
 
-                //Set order of query
-                var orderOption = command.Option("--order", "Set query order (e.g., 'id_asc', 'score', etc.). Default is 'id_desc'. (This option will be used only when the --score-min option is set.)", CommandOptionType.SingleValue);
+                //paging options
+                var startPageOption = command.Option("-sp|--start-page <page>", "Starting Page. Default is 1.", CommandOptionType.SingleValue);
+                var endPageOption = command.Option("-ep|--end-page <page>", "Ending Page. Default is 0 (unlimited).", CommandOptionType.SingleValue);
+                
+                //Set custom query string. see https://danbooru.donmai.us/wiki_pages/help%3Acheatsheet
+                var queryOption = command.Option("--query", "Set tag query string (e.g., 'score:>=100', 'blonde_hair', etc.). Default is null. --use-paging option should be enabled", CommandOptionType.SingleValue);
 
                 //Set extensions (fileType)
                 var extOption = command.Option("--ext", "Set extensions of file to download. extensions should be comma-separated list. (e.g., 'png,jpg,gif'). Default is 'png,jpg'", CommandOptionType.SingleValue);
@@ -45,16 +49,19 @@ namespace DanbooruDownloader
                 command.OnExecute(() =>
                 {
                     string path = outputPathArgument.Value;
+
                     long startId = 1;
                     long endId = 0;
+
+                    long startPage = 1;
+                    long endPage = 0;
+
+                    bool usePage = usePageOption.HasValue();
                     bool ignoreHashCheck = ignoreHashCheckOption.HasValue();
                     bool includeDeleted = includeDeletedOption.HasValue();
 
-                    //Default is 0.
-                    long scoreMin = 0;
-
-                    //Default is 'id_desc'
-                    string order = "id_desc";
+                    //Default is null
+                    string query = null;
 
                     //Default is 'png,jpg'
                     List<string> exts = new List<string> { "png", "jpg" };
@@ -71,22 +78,35 @@ namespace DanbooruDownloader
                         return -2;
                     }
 
+                    //If paging options are set without setting --use-page option, program will be exited.
+                    if(!usePage && (startPageOption.HasValue() || endPageOption.HasValue()
+                    || queryOption.HasValue()))
+                    {
+                        Console.WriteLine("Set --use-page if you want use paging options (-sp | -ep | --query)");
+                        return -2;
+                    }
+
+                    if (startPageOption.HasValue() && !long.TryParse(startPageOption.Value(), out startPage))
+                    {
+                        Console.WriteLine("Invalid start page.");
+                        return -2;
+                    }
+
+                    if(endPageOption.HasValue() && !long.TryParse(endPageOption.Value(),out endPage))
+                    {
+                        Console.WriteLine("Invalid end page.");
+                        return -2;
+                    }
+
                     if (!usernameOption.HasValue() || !apikeyOption.HasValue())
                     {
                         Console.WriteLine("You must specify username and api key.");
                         return -2;
                     }
 
-                    //if scoreMinOption.HasValue is true but it's not valid, exit program
-                    if (scoreMinOption.HasValue() && !long.TryParse(scoreMinOption.Value(), out scoreMin))
+                    if(queryOption.HasValue())
                     {
-                        Console.WriteLine("Invalid score min value.");
-                        return -2;
-                    }
-
-                    if(orderOption.HasValue())
-                    {
-                        order = orderOption.Value();
+                        query = queryOption.Value();
                     }
 
                     if(extOption.HasValue())
@@ -97,7 +117,7 @@ namespace DanbooruDownloader
                     var username = usernameOption.Value();
                     var apikey = apikeyOption.Value();
 
-                    DumpCommand.Run(path, startId, endId, scoreMin, order, exts, ignoreHashCheck, includeDeleted, username, apikey).Wait();
+                    DumpCommand.Run(path, startId, endId, startPage, endPage, query, exts, ignoreHashCheck, includeDeleted, username, apikey).Wait();
 
                     return 0;
                 });

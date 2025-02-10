@@ -18,7 +18,10 @@ namespace DanbooruDownloader.Commands
     {
         static Logger Log = LogManager.GetCurrentClassLogger();
 
-        public static async Task Run(string path, long startId, long endId, long scoreMin, string order, List<string> exts, bool ignoreHashCheck, bool includeDeleted, string username, string apikey)
+        public static async Task Run(string path, 
+            long startId, long endId, long startPage, long endPage, string query,
+            List<string> exts, 
+            bool ignoreHashCheck, bool includeDeleted, string username, string apikey)
         {
             string tempFolderPath = Path.Combine(path, "_temp");
             string imageFolderPath = Path.Combine(path, "images");
@@ -39,7 +42,7 @@ namespace DanbooruDownloader.Commands
                 SQLiteUtility.TryCreateTable(connection);
 
                 //page number for index
-                long page = 1;
+                long page = startPage;
 
                 while (true)
                 {
@@ -48,11 +51,11 @@ namespace DanbooruDownloader.Commands
 
                     await TaskUtility.RunWithRetry(async () =>
                     {
-                        //If scoreMin vlaue is set, it will be used.
-                        if(scoreMin > 0)
+                        //If query string is set, it will be used
+                        if(!query.Equals(""))
                         {
-                            Log.Info($"Downloading metadata with score greater than {scoreMin} ... (current page : {page})");
-                            postJObjects = await DanbooruUtility.GetPosts(page, scoreMin, order, username, apikey);
+                            Log.Info($"Downloading metadata with {query} ... (current page : {page})");
+                            postJObjects = await DanbooruUtility.GetPosts(page, query, username, apikey);
                         } else
                         {
                             Log.Info($"Downloading metadata ... ({startId} ~ )");
@@ -244,6 +247,9 @@ namespace DanbooruDownloader.Commands
 
                     //increment page value
                     page++;
+
+                    //If page reaches endPage, break loop
+                    if (endPage > 0 && page > endPage) break;
                 }
 
                 try

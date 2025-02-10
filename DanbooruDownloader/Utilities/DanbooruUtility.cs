@@ -15,16 +15,11 @@ namespace DanbooruDownloader.Utilities
         public static Task<JObject[]> GetPosts(long startId, string username, string apikey)
         {
             string query = $"id:>={startId} order:id_asc";
-            string urlEncodedQuery = WebUtility.UrlEncode(query);
-
-            string url = $"https://danbooru.donmai.us/posts.json?tags={urlEncodedQuery}&page=1&limit=1000&login={WebUtility.UrlEncode(username)}&api_key={WebUtility.UrlEncode(apikey)}";
-            return GetPosts(url);
+            return GetPosts(1, query, username, apikey);
         }
 
-        //Get posts with a score greater than or equal to arg "score". Result of search will order by id descending 
-        public static Task<JObject[]> GetPosts(long page, long score, string order, string username, string apikey)
+        public static Task<JObject[]> GetPosts(long page, string query, string username, string apikey)
         {
-            string query = $"score:>={score} order:{order}";
             string urlEncodedQuery = WebUtility.UrlEncode(query);
             string url = $"https://danbooru.donmai.us/posts.json?tags={urlEncodedQuery}&page={page}&limit=1000&login={WebUtility.UrlEncode(username)}&api_key={WebUtility.UrlEncode(apikey)}";
             return GetPosts(url);
