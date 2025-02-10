@@ -13,6 +13,18 @@ Original repository: https://github.com/KichangKim/DanbooruDownloader
 ```
 Download all images and its metadata on Danbooru server to local folder `MyDataset`. To see further help, run with `--help` option.
 
+### Examples
+
+```
+> DanbooruDownloader dump -s 1 -e 10000
+```
+Download all images with id between 1 and 10,000
+
+```
+> DanbooruDownloader dump --use-paging -sp 1 -ep 400 --query "score:>=100 blonde_hair" --ext "png,jpg,mp4"
+```
+Download all images with a score of 100 or higher, containing the 'blonde_hair' tag, and having a file extension of PNG, JPG, or MP4. (with page limit 400)
+
 ## Output
 Your downloaded images are saved as following structure.
 ```
