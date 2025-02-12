@@ -23,9 +23,9 @@ namespace DanbooruDownloader.Commands
             List<string> exts, 
             bool ignoreHashCheck, bool includeDeleted, string username, string apikey)
         {
-            string tempFolderPath = Path.Combine(path, "_temp");
-            string imageFolderPath = Path.Combine(path, "images");
-            string metadataDatabasePath = Path.Combine(path, "danbooru.sqlite");
+            string tempFolderPath = Path.Combine(path, PathUtility.TEMP_DIR_NAME);
+            string imageFolderPath = Path.Combine(path, PathUtility.IMG_DIR_NAME);
+            string metadataDatabasePath = Path.Combine(path, PathUtility.META_DB_NAME);
             string lastPostJsonPath = Path.Combine(path, "last_post.json");
 
             PathUtility.CreateDirectoryIfNotExists(path);
@@ -305,12 +305,14 @@ namespace DanbooruDownloader.Commands
 
         static string GetPostLocalMetadataPath(string imageFolderPath, Post post)
         {
-            return Path.Combine(imageFolderPath, post.Md5.Substring(0, 2), $"{post.Md5}-danbooru.json");
+            //return Path.Combine(imageFolderPath, post.Md5.Substring(0, 2), $"{post.Md5}-danbooru.json");
+            return PathUtility.GetLocalMetadataPath(imageFolderPath, post.Md5);
         }
 
         static string GetPostLocalImagePath(string imageFolderPath, Post post)
         {
-            return Path.Combine(imageFolderPath, post.Md5.Substring(0, 2), $"{post.Md5}.{post.Extension}");
+            //return Path.Combine(imageFolderPath, post.Md5.Substring(0, 2), $"{post.Md5}.{post.Extension}");
+            return PathUtility.GetLocalImagePath(imageFolderPath, post.Md5, post.Extension);        
         }
 
         static string GetPostTempImagePath(string tempFolderPath, Post post)
