@@ -146,6 +146,50 @@ namespace DanbooruDownloader
                 });
             });
 
+            //Add clean command
+            application.Command("clean", command =>
+            {
+                command.Description = "Deletes records and files that match the given SQL condition.";
+                command.HelpOption("-h|--help");
+
+                var pathArgument = command.Argument("path", "Path of dataset directory that created by dump command");
+                var conditionArgument = command.Argument("condition", "SQL WHERE condition.", false);
+
+                //Option to set file name of metadata database manually
+                var metaDatabaseNameOption 
+                    = command.Option("--db-name", $"File name of metadata database. File name should include extendsion(.sqlite). Default is {Utilities.PathUtility.META_DB_NAME}", CommandOptionType.SingleValue);
+
+                command.OnExecute(() =>
+                {
+                    string path = pathArgument.Value;
+                    string condition = conditionArgument.Value;
+
+                    //Default is META_DB_NAME in PathUtility
+                    string metaDatabaseName = Utilities.PathUtility.META_DB_NAME;
+
+                    if (string.IsNullOrWhiteSpace(condition))
+                    {
+                        Console.WriteLine("Invalid condition.");
+                        return -2;
+                    }
+
+                    if(string.IsNullOrEmpty(path))
+                    {
+                        Console.WriteLine("Invalid path.");
+                        return -2;
+                    }
+
+                    if (metaDatabaseNameOption.HasValue())
+                    {
+                        metaDatabaseName = metaDatabaseNameOption.Value();
+                    }
+
+                    CleanCommand.Run(path, condition, metaDatabaseName);
+
+                    return 0;
+                });
+            });
+
             application.OnExecute(() =>
             {
                 application.ShowHint();

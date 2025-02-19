@@ -122,5 +122,63 @@ INSERT OR REPLACE INTO posts ({string.Join(',', properties.Select(p => p.Name))}
                 transaction.Commit();
             }
         }
+
+        /// <summary>
+        /// Get SqliteDataReader that result of SELECT with condition
+        /// </summary>
+        /// <param name="connection">Connection to a SQLite DB</param>
+        /// <param name="condition">SQL WHERE condition</param>
+        /// <param name="columnNames">Column names of table 'posts'</param>
+        /// <returns>SqliteDataReader for result</returns>
+        public static SqliteDataReader GetReaderByColumnNames(SqliteConnection connection, string condition, params string[] columnNames)
+        {
+            SqliteCommand command = connection.CreateCommand();
+
+            command.CommandText = $@"SELECT {string.Join(",", columnNames)} FROM posts WHERE {condition}";
+
+            return command.ExecuteReader();
+        }
+
+        /// <summary>
+        /// Count rows that matched condition and return it.
+        /// </summary>
+        /// <param name="connection">Connection to a SQLite DB</param>
+        /// <param name="condition">SQL WHERE condition</param>
+        /// <returns>The number of rows that matched condition</returns>
+        public static long CountByCondition(SqliteConnection connection, string condition)
+        {
+            using(SqliteCommand command = connection.CreateCommand())
+            {
+                //Query that count posts that match the condition
+                command.CommandText = $"SELECT COUNT(*) FROM posts WHERE {condition}";
+
+                //Execute query and return result
+                return (long)command.ExecuteScalar();
+            }
+        }
+
+        /// <summary>
+        /// Delete rows that matched condition
+        /// </summary>
+        /// <param name="connection">Connection to a SQLite DB</param>
+        /// <param name="condition">SQL WHERE condition</param>
+        /// <returns>The number of rows that deleted</returns>
+        public static int DeleteByCondition(SqliteConnection connection, string condition)
+        {
+            //begin transaction
+            using(SqliteTransaction transaction = connection.BeginTransaction())
+            {
+                SqliteCommand command = connection.CreateCommand();
+
+                command.CommandText = $"DELETE FROM posts WHERE {condition}";
+                command.Transaction = transaction;
+
+                int deletedRows = command.ExecuteNonQuery();
+
+                transaction.Commit();
+
+                return deletedRows;
+            }
+        }
     }
 }
