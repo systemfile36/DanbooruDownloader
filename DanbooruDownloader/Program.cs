@@ -190,6 +190,49 @@ namespace DanbooruDownloader
                 });
             });
 
+            //Command for feature test
+            application.Command("test", command =>
+            {
+                command.Description = "For Test";
+
+                command.OnExecute(async () =>
+                {
+                    string uri = "https://cdn.donmai.us/original/4a/55/4a55093c68028b949a784d1d2848d71f.jpg";
+
+                    string path = "test.png";
+
+                    int targetWidth = 512;
+                    int targetHeight = 512;
+
+                    using (System.Net.Http.HttpClient client = new System.Net.Http.HttpClient())
+                    {
+                        //Add User-Agent to prevent receiving a 403 Forbidden response
+                        client.DefaultRequestHeaders.Add("User-Agent", "PostmanRuntime/7.43.0");
+
+                        System.Net.Http.HttpResponseMessage response = await client.GetAsync(uri, System.Net.Http.HttpCompletionOption.ResponseHeadersRead);
+
+                        switch (response.StatusCode)
+                        {
+                            case System.Net.HttpStatusCode.Forbidden:
+                            case System.Net.HttpStatusCode.NotFound:
+                                return -2;
+                        }
+
+                        response.EnsureSuccessStatusCode();
+
+                        using (var fileStream = System.IO.File.Create(path))
+                        {
+                            using (System.IO.Stream httpStream = await response.Content.ReadAsStreamAsync())
+                            {
+
+                                await Utilities.ImageUtility.ResizeImage(httpStream, fileStream, targetWidth, targetHeight);
+                            }
+                        }
+                    }
+                    return 0;
+                });
+            });
+
             application.OnExecute(() =>
             {
                 application.ShowHint();
