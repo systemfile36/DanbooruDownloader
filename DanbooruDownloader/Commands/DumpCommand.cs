@@ -19,7 +19,7 @@ namespace DanbooruDownloader.Commands
         static Logger Log = LogManager.GetCurrentClassLogger();
 
         public static async Task Run(string path, 
-            long startId, long endId, long startPage, long endPage, string query,
+            long startId, long endId, long startPage, long endPage, long limit, string query,
             List<string> exts, 
             bool ignoreHashCheck, bool includeDeleted, string username, string apikey)
         {
@@ -54,8 +54,8 @@ namespace DanbooruDownloader.Commands
                         //If query string is set, it will be used
                         if(!query.Equals(""))
                         {
-                            Log.Info($"Downloading metadata with {query} ... (current page : {page})");
-                            postJObjects = await DanbooruUtility.GetPosts(page, query, username, apikey);
+                            Log.Info($"Downloading metadata with {query} ... (current page : {page}, current limit : {limit})");
+                            postJObjects = await DanbooruUtility.GetPosts(page, query, limit, username, apikey);
                         } else
                         {
                             Log.Info($"Downloading metadata ... ({startId} ~ )");

@@ -36,6 +36,9 @@ namespace DanbooruDownloader
                 //paging options
                 var startPageOption = command.Option("-sp|--start-page <page>", "Starting Page. Default is 1.", CommandOptionType.SingleValue);
                 var endPageOption = command.Option("-ep|--end-page <page>", "Ending Page. Default is 0 (unlimited).", CommandOptionType.SingleValue);
+
+                //paging options - limit
+                var limitOption = command.Option("--limit <num>", "Limit of number of posts per page. Default is 1000", CommandOptionType.SingleValue);
                 
                 //Set custom query string. see https://danbooru.donmai.us/wiki_pages/help%3Acheatsheet
                 var queryOption = command.Option("--query", "Set tag query string (e.g., 'score:>=100', 'blonde_hair', etc.). Default is empty string. --use-paging option should be enabled", CommandOptionType.SingleValue);
@@ -60,6 +63,9 @@ namespace DanbooruDownloader
 
                     long startPage = 1;
                     long endPage = 0;
+
+                    //default limit is 1000
+                    long limit = 1000;
 
                     bool usePage = usePageOption.HasValue();
                     bool ignoreHashCheck = ignoreHashCheckOption.HasValue();
@@ -103,6 +109,12 @@ namespace DanbooruDownloader
                         return -2;
                     }
 
+                    if(limitOption.HasValue() && !long.TryParse(limitOption.Value(), out limit))
+                    {
+                        Console.WriteLine("Invalid limit.");
+                        return -2;
+                    }
+
                     if (!usernameOption.HasValue() || !apikeyOption.HasValue())
                     {
                         Console.WriteLine("You must specify username and api key.");
@@ -140,7 +152,7 @@ namespace DanbooruDownloader
                     var username = usernameOption.Value();
                     var apikey = apikeyOption.Value();
 
-                    DumpCommand.Run(path, startId, endId, startPage, endPage, query, exts, ignoreHashCheck, includeDeleted, username, apikey).Wait();
+                    DumpCommand.Run(path, startId, endId, startPage, endPage, limit, query, exts, ignoreHashCheck, includeDeleted, username, apikey).Wait();
 
                     return 0;
                 });

@@ -25,6 +25,13 @@ namespace DanbooruDownloader.Utilities
             return GetPosts(url);
         }
 
+        public static Task<JObject[]> GetPosts(long page, string query, long limit, string username, string apikey)
+        {
+            string urlEncodedQuery = WebUtility.UrlEncode(query);
+            string url = $"https://danbooru.donmai.us/posts.json?tags={urlEncodedQuery}&page={page}&limit={limit}&login={WebUtility.UrlEncode(username)}&api_key={WebUtility.UrlEncode(apikey)}";
+            return GetPosts(url);
+        }
+
         public static async Task<JObject[]> GetPosts(string url)
         {
             using (HttpClient client = new HttpClient())
