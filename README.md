@@ -4,6 +4,12 @@ Licensed under the MIT License.
 
 Original repository: https://github.com/KichangKim/DanbooruDownloader
 
+I upgrade original DanbooruDownloader for download and manage dataset from Danbooru for deep-learning.
+
+Some options(`--ext`, `--query`, paging options, etc) is added
+
+Somae commands(`clean`, etc) will be added
+
 # DanbooruDownloader
 **DanbooruDownloader** is image download software for [Danbooru](https://danbooru.donmai.us/).
 
@@ -25,6 +31,12 @@ Download all images with id between 1 and 10,000
 ```
 Download all images with a score of 100 or higher, containing the 'blonde_hair' tag, and having a file extension of PNG, JPG, or MP4. (with page limit 400)
 
+```
+> DanbooruDownloader dump --use-paging -sp 1 -ep 1000 --limit 100 --query "score:>=200 order:id_desc" --ext "png,jpg"
+```
+
+Download all images with a score of 200 or higher, having a file extension of PNG, JPG. (with page beetween 1 and 1,000. posts per page is 100 (--limit option))
+
 ## Output
 Your downloaded images are saved as following structure.
 ```
@@ -42,4 +54,5 @@ MyDataset/
 ```
 The filename of images is its MD5 hash. And `-danbooru.json` file contains the metadata of image post.
 
-All of metadata is also saved as SQLite database, named `danbooru.sqlite`. Its table structure is same to the output of [Danbooru json API](https://danbooru.donmai.us/wiki_pages/43568).
+All of metadata is also saved as SQLite database, named `danbooru.sqlite`. Its table structure is same to the output of [Danbooru json API](https://danbooru.donmai.us/wiki_pages/help:api). 
+except for 'media_asset'.
