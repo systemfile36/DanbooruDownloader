@@ -21,7 +21,9 @@ namespace DanbooruDownloader.Commands
         public static async Task Run(string path, 
             long startId, long endId, long startPage, long endPage, long limit, string query,
             List<string> exts, 
-            bool ignoreHashCheck, bool includeDeleted, string username, string apikey)
+            bool ignoreHashCheck, bool includeDeleted, 
+            bool useResizing, int targetWidth, int targetHeight, int resizingThreshold,
+            string username, string apikey)
         {
             string tempFolderPath = Path.Combine(path, PathUtility.TEMP_DIR_NAME);
             string imageFolderPath = Path.Combine(path, PathUtility.IMG_DIR_NAME);
@@ -192,29 +194,47 @@ namespace DanbooruDownloader.Commands
                                 if (post.ShouldDownloadImage)
                                 {
                                     Log.Info($"Downloading post {post.Id} ...");
-                                    await Download(post.ImageUrl + $"?login={username}&api_key={apikey}", tempImagePath);
 
-                                    string downloadedMd5 = GetMd5Hash(tempImagePath);
-
-                                    if (downloadedMd5 != post.Md5)
+                                    //Download to memoryStream to check file size and resizing image optionally
+                                    using(MemoryStream imageStream = await Download(post.ImageUrl + $"?login={username}&api_key={apikey}"))
                                     {
-                                        Log.Warn($"MD5 hash of downloaded image is different : Id={post.Id}, {post.Md5} (metadata) != {downloadedMd5} (downloaded)");
-                                        try
-                                        {
-                                            File.Delete(tempImagePath);
-                                        }
-                                        finally { }
+                                        imageStream.Position = 0;
+                                        string downloadedMd5 = GetMd5Hash(imageStream);
 
-                                        try
+                                        if(downloadedMd5 != post.Md5)
                                         {
-                                            File.Delete(metadataPath);
+                                            Log.Warn($"MD5 hash of downloaded image is different : Id={post.Id}, {post.Md5} (metadata) != {downloadedMd5} (downloaded)");
+                                            try
+                                            {
+                                                File.Delete(metadataPath);
+                                            }
+                                            finally { }
+                                            throw new Exception();
+                                        } else
+                                        {
+                                            File.Delete(imagePath);
+
+                                            imageStream.Position = 0;
+
+                                            //Open file
+                                            using(FileStream fileStream = File.Create(imagePath))
+                                            {
+                                                //File size check
+                                                if (useResizing && imageStream.Length > resizingThreshold / 1024)
+                                                {
+                                                    Log.Info($"file size of {post.Id} exceeds threshold {resizingThreshold}. Resizing to {targetWidth}x{targetHeight} ...");
+
+                                                    //Resizing and write to File
+                                                    await ImageUtility.ResizeImage(imageStream, fileStream, targetWidth, targetHeight);
+                                                } else
+                                                {
+                                                    imageStream.CopyTo(fileStream);
+                                                    fileStream.Flush();
+                                                }
+                                            }
+
                                         }
-                                        finally { }
-                                        throw new Exception();
                                     }
-
-                                    File.Delete(imagePath);
-                                    File.Move(tempImagePath, imagePath);
                                 }
 
                                 if (post.ShouldDownloadImage || post.ShouldSaveMetadata)
@@ -333,6 +353,18 @@ namespace DanbooruDownloader.Commands
             }
         }
 
+        static string GetMd5Hash(Stream stream)
+        {
+            using (MD5 md5 = MD5.Create())
+            {
+                stream.Position = 0;
+
+                byte[] hashBytes = md5.ComputeHash(stream);
+
+                return BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
+            }
+        }
+
         static async Task Download(string uri, string path)
         {
             using (HttpClient client = new HttpClient())
@@ -359,6 +391,35 @@ namespace DanbooruDownloader.Commands
                         fileStream.Flush();
                     }
                 }
+            }
+        }
+
+        static async Task<MemoryStream> Download(string uri)
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                //Add User-Agent to prevent receiving a 403 Forbidden response
+                client.DefaultRequestHeaders.Add("User-Agent", "PostmanRuntime/7.43.0");
+
+                HttpResponseMessage response = await client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead);
+
+                switch (response.StatusCode)
+                {
+                    case HttpStatusCode.Forbidden:
+                    case HttpStatusCode.NotFound:
+                        throw new NotRetryableException();
+                }
+
+                response.EnsureSuccessStatusCode();
+
+                MemoryStream memoryStream = new MemoryStream();
+                
+                using (Stream httpStream = await response.Content.ReadAsStreamAsync())
+                {
+                    httpStream.CopyTo(memoryStream);
+                }
+                
+                return memoryStream;
             }
         }
 

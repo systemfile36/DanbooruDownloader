@@ -46,6 +46,12 @@ namespace DanbooruDownloader
                 //Set extensions (fileType)
                 var extOption = command.Option("--ext", "Set extensions of file to download. extensions should be comma-separated list. (e.g., 'png,jpg,gif'). Default is 'png,jpg'", CommandOptionType.SingleValue);
 
+                //Set resizing params
+                var resizingOption = command.Option("--resizing", "Use resizing. Default size to resize is 1024x1024.", CommandOptionType.NoValue);
+                var resizingSizeOption = command.Option("--resize-size <size>", "Set target size for resizing. (e.g., '512x512'). Default is 1024x1024", CommandOptionType.SingleValue);
+                var resizingThresholdOption = command.Option("--resize-threshold <file_size>", "Set threshold of file size for resizing (Unit is kb). " +
+                    "If file size of image exceeds this, it will be resized. Default is 200kb", CommandOptionType.SingleValue);
+
                 var ignoreHashCheckOption = command.Option("-i|--ignore-hash-check", "Ignore hash check.", CommandOptionType.NoValue);
                 var includeDeletedOption = command.Option("-d|--deleted", "Include deleted posts.", CommandOptionType.NoValue);
                 var usernameOption = command.Option("--username", "Username of Danbooru account.", CommandOptionType.SingleValue);
@@ -76,6 +82,12 @@ namespace DanbooruDownloader
 
                     //Default is 'png,jpg'
                     List<string> exts = new List<string> { "png", "jpg" };
+
+                    //resizing params
+                    bool useResizing = resizingOption.HasValue();
+                    int targetWidth = 1024;
+                    int targetHeight = 1024;
+                    int resizingThreshold = 200;
 
                     if (startIdOption.HasValue() && !long.TryParse(startIdOption.Value(), out startId))
                     {
@@ -131,6 +143,30 @@ namespace DanbooruDownloader
                         exts = new List<string>(extOption.Value().Split(","));
                     }
 
+                    if(useResizing)
+                    {
+                        if(resizingOption.HasValue())
+                        {
+                            string[] temp_size = resizingSizeOption.Value().Split("x");
+                            
+                            if(temp_size.Length != 2 || !int.TryParse(temp_size[0], out targetWidth) || !int.TryParse(temp_size[1], out targetHeight))
+                            {
+                                Console.WriteLine("Invalid resizing size.");
+                                return -2;
+                            }
+                        }
+
+                        if(resizingThresholdOption.HasValue() && !int.TryParse(resizingThresholdOption.Value(), out resizingThreshold))
+                        {
+                            Console.WriteLine("Invalid resizing threshold.");
+                            return -2;
+                        }
+                    } else if(!useResizing && (resizingOption.HasValue() || resizingThresholdOption.HasValue()))
+                    {
+                        Console.WriteLine("You must use --resizing option to use resizing.");
+                        return -2;
+                    }
+
                     if(onExitCommandOption.HasValue())
                     {
                         
@@ -152,7 +188,10 @@ namespace DanbooruDownloader
                     var username = usernameOption.Value();
                     var apikey = apikeyOption.Value();
 
-                    DumpCommand.Run(path, startId, endId, startPage, endPage, limit, query, exts, ignoreHashCheck, includeDeleted, username, apikey).Wait();
+                    DumpCommand.Run(path, startId, endId, 
+                        startPage, endPage, limit, query, exts, ignoreHashCheck, includeDeleted, 
+                        useResizing, targetWidth, targetHeight, resizingThreshold,
+                        username, apikey).Wait();
 
                     return 0;
                 });
@@ -209,7 +248,7 @@ namespace DanbooruDownloader
 
                 command.OnExecute(async () =>
                 {
-                    string uri = "https://cdn.donmai.us/original/4a/55/4a55093c68028b949a784d1d2848d71f.jpg";
+                    string uri = "https://cdn.donmai.us/original/4d/72/__mary_celeste_azur_lane_drawn_by_shian_chu__4d72310dfad54dc17cd4c9c6e74e05ab.jpg";
 
                     string path = "test.png";
 
