@@ -4,6 +4,7 @@ using Microsoft.Extensions.PlatformAbstractions;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.InteropServices;
 
 namespace DanbooruDownloader
@@ -42,6 +43,9 @@ namespace DanbooruDownloader
                 
                 //Set custom query string. see https://danbooru.donmai.us/wiki_pages/help%3Acheatsheet
                 var queryOption = command.Option("--query", "Set tag query string (e.g., 'score:>=100', 'blonde_hair', etc.). Default is empty string. --use-paging option should be enabled", CommandOptionType.SingleValue);
+
+                //File based batch query excute option
+                var batchQueryOption = command.Option("--batch-query <file_path>", "Excute queries listed in newline-seperated file. If this option enabled, '--query' option will be ignored", CommandOptionType.SingleValue);
 
                 //Set extensions (fileType)
                 var extOption = command.Option("--ext", "Set extensions of file to download. extensions should be comma-separated list. (e.g., 'png,jpg,gif'). Default is 'png,jpg'", CommandOptionType.SingleValue);
@@ -188,10 +192,48 @@ namespace DanbooruDownloader
                     var username = usernameOption.Value();
                     var apikey = apikeyOption.Value();
 
-                    DumpCommand.Run(path, startId, endId, 
-                        startPage, endPage, limit, query, exts, ignoreHashCheck, includeDeleted, 
-                        useResizing, targetWidth, targetHeight, resizingThreshold,
-                        username, apikey).Wait();
+                    if(batchQueryOption.HasValue())
+                    {
+                        string batchPath = batchQueryOption.Value();
+                        try 
+                        {
+                            using (FileStream fileStream = File.Open(batchPath, FileMode.Open))
+                            {
+                                using(StreamReader reader = new StreamReader(fileStream))
+                                {
+                                    string line;
+
+                                    while ((line = reader.ReadLine()) != null)
+                                    {
+                                        line = line.Trim();
+
+                                        if (!string.IsNullOrWhiteSpace(line) || !string.IsNullOrEmpty(line))
+                                        {
+                                            Console.WriteLine($"Current Query : {line}");
+                                            DumpCommand.Run(path, startId, endId,
+                                                startPage, endPage, limit, line, exts, ignoreHashCheck, includeDeleted,
+                                                useResizing, targetWidth, targetHeight, resizingThreshold,
+                                                username, apikey).Wait();
+                                        }
+                                    }
+                                }
+                            }
+
+                        } catch (FileNotFoundException)
+                        {
+                            Console.WriteLine($"There is no file {batchPath}.");
+                            return -2;
+                        }
+                        
+                    } else
+                    {
+                        DumpCommand.Run(path, startId, endId,
+                            startPage, endPage, limit, query, exts, ignoreHashCheck, includeDeleted,
+                            useResizing, targetWidth, targetHeight, resizingThreshold,
+                            username, apikey).Wait();
+                    }
+
+
 
                     return 0;
                 });
