@@ -9,8 +9,8 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Security.Cryptography;
-using System.Text;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 
 namespace DanbooruDownloader.Commands
 {
@@ -215,6 +215,17 @@ namespace DanbooruDownloader.Commands
                                             File.Delete(imagePath);
 
                                             imageStream.Position = 0;
+
+                                            //If useResizing is true, replace extension to '.png'
+                                            if (useResizing)
+                                            {
+                                                //regex to match extension of image file
+                                                string pattern = @"\.(jpg|jpeg|gif|bmp|webp|tiff?|png)$";
+                                                string pngExtension = ".png";
+
+                                                //replace
+                                                imagePath = Regex.Replace(imagePath, pattern, pngExtension, RegexOptions.IgnoreCase);
+                                            }
 
                                             //Open file
                                             using(FileStream fileStream = File.Create(imagePath))
