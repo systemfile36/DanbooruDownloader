@@ -14,6 +14,11 @@ namespace DanbooruDownloader.Utilities
     public static class ImageUtility
     {
         /// <summary>
+        /// File extension(or format) of image that resized by this Utility.
+        /// </summary>
+        public const string RESIZE_FILE_EXTENSION = ".png";
+
+        /// <summary>
         /// Return resized Image as Stream 
         /// </summary>
         /// <param name="imageStream">Image to resize. as Stream</param>

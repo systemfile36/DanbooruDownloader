@@ -142,7 +142,16 @@ namespace DanbooruDownloader.Commands
                             Log.Error(e);
                         }
 
-                        string imagePath = GetPostLocalImagePath(imageFolderPath, post);
+                        string imagePath = "";
+
+                        //If use resizing, replace file extension to RESIZE_FILE_EXTENSION
+                        if(useResizing)
+                        {
+                            imagePath = GetPostLocalImagePath(imageFolderPath, post, ImageUtility.RESIZE_FILE_EXTENSION);
+                        } else
+                        {
+                            imagePath = GetPostLocalImagePath(imageFolderPath, post);
+                        }
 
                         if (!File.Exists(imagePath))
                         {
@@ -221,10 +230,10 @@ namespace DanbooruDownloader.Commands
                                             {
                                                 //regex to match extension of image file
                                                 string pattern = @"\.(jpg|jpeg|gif|bmp|webp|tiff?|png)$";
-                                                string pngExtension = ".png";
+                                                string resizingExt = ImageUtility.RESIZE_FILE_EXTENSION;
 
                                                 //replace
-                                                imagePath = Regex.Replace(imagePath, pattern, pngExtension, RegexOptions.IgnoreCase);
+                                                imagePath = Regex.Replace(imagePath, pattern, resizingExt, RegexOptions.IgnoreCase);
                                             }
 
                                             //Open file
@@ -344,6 +353,11 @@ namespace DanbooruDownloader.Commands
         {
             //return Path.Combine(imageFolderPath, post.Md5.Substring(0, 2), $"{post.Md5}.{post.Extension}");
             return PathUtility.GetLocalImagePath(imageFolderPath, post.Md5, post.Extension);        
+        }
+
+        static string GetPostLocalImagePath(string imageFolderPath, Post post, string ext)
+        {
+            return PathUtility.GetLocalImagePath(imageFolderPath, post.Md5, ext);
         }
 
         static string GetPostTempImagePath(string tempFolderPath, Post post)
