@@ -230,7 +230,7 @@ namespace DanbooruDownloader.Commands
                                             {
                                                 //regex to match extension of image file
                                                 string pattern = @"\.(jpg|jpeg|gif|bmp|webp|tiff?|png)$";
-                                                string resizingExt = ImageUtility.RESIZE_FILE_EXTENSION;
+                                                string resizingExt = "." + ImageUtility.RESIZE_FILE_EXTENSION;
 
                                                 //replace
                                                 imagePath = Regex.Replace(imagePath, pattern, resizingExt, RegexOptions.IgnoreCase);
