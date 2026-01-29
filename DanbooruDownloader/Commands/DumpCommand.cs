@@ -10,6 +10,7 @@ using System.Net;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
+using System.Threading;
 using System.Text.RegularExpressions;
 
 namespace DanbooruDownloader.Commands
@@ -396,25 +397,35 @@ namespace DanbooruDownloader.Commands
             {
                 //Add User-Agent to prevent receiving a 403 Forbidden response
                 client.DefaultRequestHeaders.Add("User-Agent", "PostmanRuntime/7.43.0");
+                
+                client.Timeout = TimeSpan.FromSeconds(60);
 
-                HttpResponseMessage response = await client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead);
-
-                switch (response.StatusCode)
+                try
                 {
-                    case HttpStatusCode.Forbidden:
-                    case HttpStatusCode.NotFound:
-                        throw new NotRetryableException();
-                }
+                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
 
-                response.EnsureSuccessStatusCode();
+                    HttpResponseMessage response =
+                        await client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, cts.Token);
 
-                using (FileStream fileStream = File.Create(path))
-                {
-                    using (Stream httpStream = await response.Content.ReadAsStreamAsync())
+                    switch (response.StatusCode)
                     {
-                        httpStream.CopyTo(fileStream);
-                        fileStream.Flush();
+                        case HttpStatusCode.Forbidden:
+                        case HttpStatusCode.NotFound:
+                            throw new NotRetryableException();
                     }
+
+                    response.EnsureSuccessStatusCode();
+
+                    using (FileStream fileStream = File.Create(path))
+                    using (Stream httpStream = await response.Content.ReadAsStreamAsync(cts.Token))
+                    {
+                        await httpStream.CopyToAsync(fileStream, 81920, cts.Token);
+                        await fileStream.FlushAsync(cts.Token);
+                    }
+                }
+                catch (TaskCanceledException ex)
+                {
+                    throw new TimeoutException($"Download timeout: {uri}", ex);
                 }
             }
         }
@@ -426,25 +437,42 @@ namespace DanbooruDownloader.Commands
                 //Add User-Agent to prevent receiving a 403 Forbidden response
                 client.DefaultRequestHeaders.Add("User-Agent", "PostmanRuntime/7.43.0");
 
-                HttpResponseMessage response = await client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead);
+                // Set Timeout
+                client.Timeout = TimeSpan.FromSeconds(60); 
 
-                switch (response.StatusCode)
+                try
                 {
-                    case HttpStatusCode.Forbidden:
-                    case HttpStatusCode.NotFound:
-                        throw new NotRetryableException();
+
+                    // Timeout token
+                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+
+                    HttpResponseMessage response = 
+                        await client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+
+                    switch (response.StatusCode)
+                    {
+                        case HttpStatusCode.Forbidden:
+                        case HttpStatusCode.NotFound:
+                            throw new NotRetryableException();
+                    }
+
+                    response.EnsureSuccessStatusCode();
+
+                    MemoryStream memoryStream = new MemoryStream();
+                    
+                    using (Stream httpStream = await response.Content.ReadAsStreamAsync())
+                    {
+                        // Async with token
+                        await httpStream.CopyToAsync(memoryStream, 81920, cts.Token);
+                    }
+                    
+                    return memoryStream;
                 }
-
-                response.EnsureSuccessStatusCode();
-
-                MemoryStream memoryStream = new MemoryStream();
-                
-                using (Stream httpStream = await response.Content.ReadAsStreamAsync())
+                catch (TaskCanceledException ex)
                 {
-                    httpStream.CopyTo(memoryStream);
+                    // Timeout or cancel
+                    throw new TimeoutException($"Download timeout: {uri}", ex);
                 }
-                
-                return memoryStream;
             }
         }
 
